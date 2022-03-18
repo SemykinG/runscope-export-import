@@ -29,11 +29,10 @@ public class ImportHandler {
     private final FileHandler fileHandler = new FileHandler();
 
     private List<JSONObject> bucketsToImport = new ArrayList<>();
-    private JSONArray bucketsJSONArray = null;
 
 
     public void constructImportData(List<String> bucketKeys, String keyword) {
-        bucketsJSONArray = fileHandler.FilePathToJSONArray(null);
+        JSONArray bucketsJSONArray = fileHandler.FilePathToJSONArray(null);
 
         // JSON FILE / DIRECTORY ERROR
         if (bucketsJSONArray == null) {
@@ -59,14 +58,17 @@ public class ImportHandler {
                 AppUtils.print("");
                 AppUtils.print("IMPORTING DATA, PLEASE WAIT...");
 
-                for (JSONObject bucket : bucketsToImport) {
-                    String oldBucketKey = (String) bucket.get(KEY);
-                    String bucketName = (String) bucket.get(NAME);
+                AppUtils.printInfo("");
+                AppUtils.printInfo("-- CONFIGURING [" + bucketsToImport.size() + "] BUCKET(S)");
+
+                for (int i = 0; i < bucketsToImport.size(); i++) {
+                    JSONObject bucketJNObject = bucketsToImport.get(i);
+                    String oldBucketKey = (String) bucketJNObject.get(KEY);
 
                     AppUtils.printInfo("");
-                    AppUtils.printInfo("CONFIGURING BUCKET: '" + bucketName + "'");
+                    AppUtils.printInfo("-- BUCKET [" + (i + 1) + "/" + bucketsToImport.size() + "], " + bucketJNObject.get(NAME));
 
-                    Response bucketResponse = requestHandler.handleBucketExistence(bucket);
+                    Response bucketResponse = requestHandler.handleBucketExistence(bucketJNObject);
                     if (bucketResponse == null) {
                         return;
                     }
@@ -78,24 +80,21 @@ public class ImportHandler {
                         return;
                     }
 
-                    JSONArray sharedEnvironmentIdsArray = new JSONArray();
-                    JSONArray testEnvironmentIdsArray = new JSONArray();
+                    JSONArray environmentIdsArray = new JSONArray();
                     JSONArray testIdsArray = new JSONArray();
 
-                    JSONArray sharedEnvironmentsJSONArray = (JSONArray) bucket.get(SHARED_ENVIRONMENTS);
+                    JSONArray sharedEnvironmentsJSONArray = (JSONArray) bucketJNObject.get(SHARED_ENVIRONMENTS);
 
                     /*  SHARED ENVIRONMENTS  */
                     if (sharedEnvironmentsJSONArray.size() > 0) {
                         AppUtils.printInfo("");
-                        AppUtils.printInfo("-- CONFIGURING [" + sharedEnvironmentsJSONArray.size() + "] SHARED ENVIRONMENTS");
+                        AppUtils.printInfo("-- CONFIGURING [" + sharedEnvironmentsJSONArray.size() + "] SHARED ENVIRONMENT(S)");
 
-                        for (int i = 0; i < sharedEnvironmentsJSONArray.size(); i++) {
-                            JSONObject sharedEnvironmentJSONObject = (JSONObject) sharedEnvironmentsJSONArray.get(i);
-                            String sharedEnvironmentName = (String) sharedEnvironmentJSONObject.get(NAME);
+                        for (int j = 0; j < sharedEnvironmentsJSONArray.size(); j++) {
+                            JSONObject sharedEnvironmentJSONObject = (JSONObject) sharedEnvironmentsJSONArray.get(j);
 
-                            int counter = i + 1;
                             AppUtils.printInfo("");
-                            AppUtils.printInfo("-- SHARED ENVIRONMENT [" + counter + "/" + sharedEnvironmentsJSONArray.size() + "], " + sharedEnvironmentName);
+                            AppUtils.printInfo("-- SHARED ENVIRONMENT [" + (j + 1) + "/" + sharedEnvironmentsJSONArray.size() + "], " + sharedEnvironmentJSONObject.get(NAME));
 
                             Response sharedEnvironmentResponse = requestHandler.handleSharedEnvironmentExistence(bucketKey, sharedEnvironmentJSONObject);
                             if (sharedEnvironmentResponse == null) {
@@ -105,13 +104,13 @@ public class ImportHandler {
                             JSONObject sharedEnvironmentResponseJSONObject = parser.parseStringToJSONObject(parser.getResponseDataString(sharedEnvironmentResponse.getResponse()));
 
                             //                                      OLD                                                 NEW
-                            addIdsObjectToArray((String) sharedEnvironmentJSONObject.get(ID), (String) sharedEnvironmentResponseJSONObject.get(ID), sharedEnvironmentIdsArray);
+                            addIdsObjectToArray((String) sharedEnvironmentJSONObject.get(ID), (String) sharedEnvironmentResponseJSONObject.get(ID), environmentIdsArray);
                         }
                         AppUtils.printInfo("-- SHARED ENVIRONMENTS CONFIGURED");
                     }
 
 
-                    JSONArray testsJSONArray = (JSONArray) bucket.get(TESTS);
+                    JSONArray testsJSONArray = (JSONArray) bucketJNObject.get(TESTS);
 
                     /*  TESTS  */
                     if (testsJSONArray.size() > 0) {
@@ -135,16 +134,11 @@ public class ImportHandler {
                         AppUtils.printInfo("");
                         AppUtils.printInfo("-- CONFIGURING [" + testsJSONArray.size() + "] TEST(S)");
 
-                        for (int i = 0; i < testsJSONArray.size(); i++) {
-                            JSONObject testJSONObject = (JSONObject) testsJSONArray.get(i);
+                        for (int j = 0; j < testsJSONArray.size(); j++) {
+                            JSONObject testJSONObject = (JSONObject) testsJSONArray.get(j);
 
-                            String testName = (String) testJSONObject.get(NAME);
-                            String oldTestId = (String) testJSONObject.get(ID);
-                            String oldTestDefaultEnvironmentId = (String) testJSONObject.get(DEFAULT_ENVIRONMENT_ID);
-
-                            int counter = i + 1;
                             AppUtils.printInfo("");
-                            AppUtils.printInfo("---- TEST [" + counter + "/" + testsJSONArray.size() + "], " + testName);
+                            AppUtils.printInfo("---- TEST [" + (j + 1) + "/" + testsJSONArray.size() + "], " + testJSONObject.get(NAME));
 
 
                             // COLLECT ENVIRONMENTS, STEPS & SCHEDULES AND REMOVE THEM FROM TEST OBJECT
@@ -156,22 +150,23 @@ public class ImportHandler {
                             testJSONObject.put(SCHEDULES, new JSONArray());
 
 
-                            Response testResponse = requestHandler.handleTestExistence(bucketKey, testJSONObject, false);
+                            Response testResponse = requestHandler.handleTestExistence(bucketKey, testJSONObject, true);
                             if (testResponse == null) {
                                 return;
                             }
 
                             // IF TEST IS CREATED, IT GETS NEW DEFAULT ENVIRONMENT, SO WE SET IT TO OLD ONE AND REPLACE TO NEW (CORRECT) ONE LATER.
                             JSONObject testResponseJSONObject = parser.parseStringToJSONObject(parser.getResponseDataString(testResponse.getResponse()));
-                            testResponseJSONObject.put(DEFAULT_ENVIRONMENT_ID, oldTestDefaultEnvironmentId);
+                            testResponseJSONObject.put(DEFAULT_ENVIRONMENT_ID, testJSONObject.get(DEFAULT_ENVIRONMENT_ID));
 
                             String newTestId = (String) testResponseJSONObject.get(ID);
 
-                            addIdsObjectToArray(oldTestId, newTestId, testIdsArray);
+                            //                              old test_id
+                            addIdsObjectToArray((String) testJSONObject.get(ID), newTestId, testIdsArray);
 
                             // REPLACE OLD TEST IDs WITH NEW IN STEPS (FOR SUBTESTS) TO PRESERVE CONNECTIONS
                             String stepsStringArray = stepsJSONArray.toString();
-                            stepsStringArray = replaceOldIdsWithNewInDataString(testIdsArray, stepsStringArray);
+                            stepsStringArray = replaceOldIdsWithNewInString(testIdsArray, stepsStringArray);
                             stepsJSONArray = parser.parseStringToJSONArray(stepsStringArray);
 
 
@@ -191,7 +186,7 @@ public class ImportHandler {
                                     JSONObject environmentResponseJSONObject = parser.parseStringToJSONObject(parser.getResponseDataString(environmentResponse.getResponse()));
 
                                     //                                  OLD                                         NEW
-                                    addIdsObjectToArray((String) environmentJSONObject.get(ID), (String) environmentResponseJSONObject.get(ID), testEnvironmentIdsArray);
+                                    addIdsObjectToArray((String) environmentJSONObject.get(ID), (String) environmentResponseJSONObject.get(ID), environmentIdsArray);
                                 }
                                 AppUtils.printInfo("------ TEST ENVIRONMENTS CONFIGURED");
                             }
@@ -199,21 +194,17 @@ public class ImportHandler {
                             String currentTestString = testResponseJSONObject.toString();
 
                             // RESOLVE TEST'S DEFAULT ENVIRONMENT
-                            currentTestString = replaceOldIdsWithNewInDataString(sharedEnvironmentIdsArray, currentTestString);
-                            currentTestString = replaceOldIdsWithNewInDataString(testEnvironmentIdsArray, currentTestString);
+                            currentTestString = replaceOldIdsWithNewInString(environmentIdsArray, currentTestString);
 
                             JSONObject currentTestJSONObject = parser.parseStringToJSONObject(currentTestString);
                             currentTestJSONObject.put(STEPS, stepsJSONArray);
 
 
-                            AppUtils.printInfo("---- UPDATING STEPS AND DEFAULT ENVIRONMENT");
-
-                            // FORCE UPDATE CURRENT TEST, THIS IS REQUIRED FOR TEST TO HAVE CORRECT DEFAULT ENVIRONMENT AND STEPS
-                            Response currentTestResponse = requestHandler.handleTestExistence(bucketKey, currentTestJSONObject, true);
+                            // UPDATE CURRENT TEST TO HAVE CORRECT DEFAULT ENVIRONMENT AND STEPS
+                            Response currentTestResponse = requestHandler.handleTestExistence(bucketKey, currentTestJSONObject, false);
                             if (currentTestResponse == null) {
                                 return;
                             }
-                            AppUtils.printInfo("---- STEPS AND DEFAULT ENVIRONMENT UPDATED");
 
                             if (schedulesJSONArray.size() > 0) {
                                 AppUtils.printInfo("");
@@ -239,8 +230,7 @@ public class ImportHandler {
                                     String currentScheduleString = scheduleJSONObject.toString();
 
                                     // RESOLVE SCHEDULE ENVIRONMENT
-                                    currentScheduleString = replaceOldIdsWithNewInDataString(sharedEnvironmentIdsArray, currentScheduleString);
-                                    currentScheduleString = replaceOldIdsWithNewInDataString(testEnvironmentIdsArray, currentScheduleString);
+                                    currentScheduleString = replaceOldIdsWithNewInString(environmentIdsArray, currentScheduleString);
 
                                     scheduleJSONObject = parser.parseStringToJSONObject(currentScheduleString);
 
@@ -276,17 +266,14 @@ public class ImportHandler {
                                         return;
                                     }
                                 }
-
                                 AppUtils.printInfo("------ SCHEDULES CONFIGURED");
                             }
                             AppUtils.printInfo("---- TEST CONFIGURED");
                         }
                         AppUtils.printInfo("-- TESTS CONFIGURED");
                     }
-
                     AppUtils.printInfo("BUCKET CONFIGURED");
                 }
-
                 AppUtils.print("");
                 AppUtils.print("ALL DATA IMPORTED SUCCESSFULLY");
             } else {
@@ -306,7 +293,7 @@ public class ImportHandler {
         idsArray.add(idObject);
     }
 
-    private String replaceOldIdsWithNewInDataString(JSONArray idsArrays, String data) {
+    private String replaceOldIdsWithNewInString(JSONArray idsArrays, String data) {
         for (Object idObject : idsArrays) {
             JSONObject idJSONObject = (JSONObject) idObject;
             String oldId = (String) idJSONObject.get("OLD_ID");

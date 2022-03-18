@@ -33,7 +33,6 @@ public class Request {
         return sendRequest(constructGetRequest(BASE_URL + "/v1/buckets/" + bucketKey));
     }
 
-
     public Response getAllSharedEnvironmentsInBucket(String bucketKey) {
         return sendRequest(constructGetRequest(BASE_URL + "/buckets/" + bucketKey + "/environments"));
     }
@@ -45,7 +44,6 @@ public class Request {
     private Response getTestEnvironmentIfExists(String bucketKey, String testId , String testEnvironmentId) {
         return sendRequest(constructGetRequest(BASE_URL + "/buckets/" + bucketKey + "/tests/" + testId + "/environments/" + testEnvironmentId));
     }
-
 
     public Response getAllTestsInBucket(String bucketKey) {
         return sendRequest(constructGetRequest(BASE_URL + "/buckets/" + bucketKey + "/tests?count=200"));
@@ -134,7 +132,7 @@ public class Request {
             AppUtils.printInfo("> SHARED ENVIRONMENT FOUND IN RUNSCOPE");
 
             if ((AppUtils.EDIT_IF_EXISTS_OPTION)) {
-                sharedEnvironmentResponse = sendRequest(constructPutRequest(BASE_URL + BASE_URL + "/buckets/" + bucketKey + "/environments/" + environmentId, sharedEnvironment.toString()));
+                sharedEnvironmentResponse = sendRequest(constructPutRequest(BASE_URL + "/buckets/" + bucketKey + "/environments/" + environmentId, sharedEnvironment.toString()));
 
                 AppUtils.printInfo("> SHARED ENVIRONMENT EDITED");
             } else {
@@ -142,11 +140,10 @@ public class Request {
             }
         }
 
-
         return sharedEnvironmentResponse;
     }
 
-    public Response handleTestExistence(String bucketKey, JSONObject test, boolean forceUpdate) {
+    public Response handleTestExistence(String bucketKey, JSONObject test, boolean printInfo) {
         String testId = (String) test.get("id");
 
         Response testResponse = getTestIfExists(bucketKey, testId);
@@ -156,28 +153,36 @@ public class Request {
         }
 
         if (testResponse.isRequestFailed()) {
-            AppUtils.printInfo("> TEST NOT FOUND IN RUNSCOPE");
+            if (printInfo) {
+                AppUtils.printInfo("> TEST NOT FOUND IN RUNSCOPE");
+            }
 
             if (AppUtils.CREATE_IF_MISSING_OPTION) {
                 testResponse = sendRequest(constructPostRequest(BASE_URL + "/buckets/" + bucketKey + "/tests", test.toString()));
 
-                AppUtils.printInfo("> TEST CREATED");
+                if (printInfo) {
+                    AppUtils.printInfo("> TEST CREATED");
+                }
             } else {
-                AppUtils.printInfo("> TEST CREATION SKIPPED");
+                if (printInfo) {
+                    AppUtils.printInfo("> TEST CREATION SKIPPED");
+                }
             }
         } else {
-            if (!forceUpdate) {
+            if (printInfo) {
                 AppUtils.printInfo("> TEST FOUND IN RUNSCOPE");
             }
 
-            if (AppUtils.EDIT_IF_EXISTS_OPTION || forceUpdate) {
+            if (AppUtils.EDIT_IF_EXISTS_OPTION) {
                 testResponse = sendRequest(constructPutRequest(BASE_URL + "/buckets/" + bucketKey + "/tests/" + testId, test.toString()));
 
-                if (!forceUpdate) {
+                if (printInfo) {
                     AppUtils.printInfo("> TEST EDITED");
                 }
             } else {
-                AppUtils.printInfo("> TEST EDIT SKIPPED");
+                if (printInfo) {
+                    AppUtils.printInfo("> TEST EDIT SKIPPED");
+                }
             }
         }
 
@@ -283,7 +288,6 @@ public class Request {
     }
 
 
-
     private Response sendRequest(HttpRequest request) {
         try {
             HttpResponse<String> response = HttpClient
@@ -298,7 +302,9 @@ public class Request {
 
             return requestResponse;
         } catch (IOException | InterruptedException e) {
+            AppUtils.printErr("");
             AppUtils.printErr("REQUEST ERROR");
+            AppUtils.printErr("REQUEST: " + request.toString());
             e.printStackTrace();
         }
 

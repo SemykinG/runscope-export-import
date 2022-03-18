@@ -213,7 +213,7 @@ public class Main {
                     continue;
                 }
 
-                if (settingsArgs[0].equalsIgnoreCase(AppUtils.EDIT_IF_EXISTS)) {
+                if (settingsArgs[0].equalsIgnoreCase(AppUtils.REPLACE_IF_EXISTS)) {
                     AppUtils.EDIT_IF_EXISTS_OPTION = Boolean.parseBoolean(option);
                     settingsChanged = true;
                     continue;

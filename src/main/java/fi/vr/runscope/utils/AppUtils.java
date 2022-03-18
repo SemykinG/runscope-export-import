@@ -20,7 +20,7 @@ public class AppUtils {
     public final static String SETTINGS = "settings";
     public final static String HELP = "help";
     public final static String QUIT = "quit";
-    public final static String EDIT_IF_EXISTS = "editIfExists";
+    public final static String REPLACE_IF_EXISTS = "replaceIfExists";
     public final static String CREATE_IF_MISSING = "createIfMissing";
     public final static String PRINT_INFO = "printInfo";
     public final static String IMPORT_DEFAULT_TEST_ENVIRONMENT = "importDefaultTestEnvironment";
@@ -93,7 +93,7 @@ public class AppUtils {
     public static void printSettings() {
         print("");
         print(SETTINGS + " " +
-                "" + EDIT_IF_EXISTS + "=" + EDIT_IF_EXISTS_OPTION + " " +
+                "" + REPLACE_IF_EXISTS + "=" + EDIT_IF_EXISTS_OPTION + " " +
                 "  " + CREATE_IF_MISSING + "=" + CREATE_IF_MISSING_OPTION + " " +
                 "  " + PRINT_INFO + "=" + PRINT_INFO_OPTION + " " +
                 "  " + IMPORT_DEFAULT_TEST_ENVIRONMENT + "=" + IMPORT_DEFAULT_TEST_ENVIRONMENT_OPTION);
