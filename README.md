@@ -4,7 +4,7 @@ Java command line tool to export / import data from / to https://www.runscope.co
  
 
 ## Requirements
- - Java
+ - Java 12
  - Runscope account & API key
 
 ## Available commands
